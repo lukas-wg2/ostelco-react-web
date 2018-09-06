@@ -1,37 +1,34 @@
 import React, { Component } from 'react';
+import {branch, compose, renderComponent} from 'recompose';
 
 class Home extends Component {
-  login() {
-    this.props.auth.login();
-  }
   render() {
-    const { isAuthenticated } = this.props.auth;
     return (
       <div className="container">
-        {
-          isAuthenticated() && (
-              <h4>
-                You are logged in!
-              </h4>
-            )
-        }
-        {
-          !isAuthenticated() && (
-              <h4>
-                You are not logged in! Please{' '}
-                <a
-                  style={{ cursor: 'pointer' }}
-                  onClick={this.login.bind(this)}
-                >
-                  Log In
-                </a>
-                {' '}to continue.
-              </h4>
-            )
-        }
+        <h4>
+          You are logged in!
+        </h4>
       </div>
     );
   }
 }
 
-export default Home;
+const LoginMessage = props => {
+  const { auth } = props;
+  return (
+    <h4>
+      You are not logged in! Please{' '}
+      <a
+        style={{ cursor: 'pointer' }}
+        onClick={() => auth.login()}
+      >
+        Log In
+      </a>
+      {' '}to continue.
+    </h4>
+  )
+}
+
+export default compose(
+  branch(({ auth }) => !auth.isAuthenticated(), renderComponent(LoginMessage))
+)(Home)
