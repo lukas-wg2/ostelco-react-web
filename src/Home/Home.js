@@ -5,6 +5,7 @@ import {withFormik} from "formik";
 import {FormGroup, HelpBlock, FormControl, ControlLabel, Button} from "react-bootstrap";
 import jwt_decode from 'jwt-decode';
 import Callback from "../Callback/Callback";
+import {getUser, setUser} from "../firebase";
 
 
 const RegistrationFormSchema = yup.object().shape({
@@ -43,7 +44,7 @@ const withRequestHeaders = compose(
 )
 
 const RegistrationForm = (props) => {
-  const { values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting, profileExists } = props;
+  const { values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting } = props;
 
   const fields = [{
     type: "text",
@@ -90,12 +91,11 @@ const RegistrationFormContainer = compose(
   withRequestHeaders,
   withFormik(
     {
-      mapPropsToValues: ({ email, name, address }) => {
-        const nameArray = (name || '').split(' ')
+      mapPropsToValues: ({ email, firstname, surname, dateofbirth, address }) => {
         return {
-          firstname: nameArray.slice(0, nameArray.length - 1).join(' '),
-          surname: nameArray.slice(nameArray.length - 1).join(' '),
-          dateofbirth: '',
+          firstname,
+          surname,
+          dateofbirth,
           address,
           email
         }
@@ -116,35 +116,39 @@ const RegistrationFormContainer = compose(
 
         console.log('profileExists', profileExists, values, requestHeaders)
 
-        fetch('https://api.dev.ostelco.org/profile', {
-          method: profileExists ? 'PUT' : 'POST',
-          headers: requestHeaders,
-          body: JSON.stringify({
-            email: values.email,
-            name: `${values.firstname} ${values.surname}`,
-            address: values.address
-          })
-        }).then(response => {
-          if (response.status == 200 || response.status == 201) {
-            return response
-          } else {
-            return response.json().then(response => {
-              throw response
+        setUser(values.email, values).then(() => {
+          return fetch('https://api.dev.ostelco.org/profile', {
+            method: profileExists ? 'PUT' : 'POST',
+            headers: requestHeaders,
+            body: JSON.stringify({
+              email: values.email,
+              name: `${values.firstname} ${values.surname}`,
+              address: values.address
             })
-          }
+          }).then(response => {
+            if (response.status == 200 || response.status == 201) {
+              return response
+            } else {
+              return response.json().then(response => {
+                throw response
+              })
+            }
+          })
+            .then(response => response.json())
+
         })
-          .then(response => response.json())
           .then(response => {
-          console.log('------------------------');
-          console.log(response)
+            console.log('------------------------');
+            console.log(response)
             setSubmitting(false)
             alert('success');
-        }).catch(response => {
+          }).catch(response => {
           console.log('*************************');
           console.log(response)
           setSubmitting(false)
           alert(response);
         })
+
       }
     })
 )(RegistrationForm)
@@ -191,34 +195,54 @@ const withProfileFromServer = compose(
   lifecycle(({
     componentDidMount() {
       const { token, profile, requestHeaders } = this.props;
-      console.log('async request', this.props);
-      fetch('https://api.dev.ostelco.org/profile', {
-        method: 'GET',
-        headers: requestHeaders
-      }).then((response) => response.json())
-        .then(response => {
-          try {
-            if (response.email) {
-              console.log('-------------------')
-              console.log('got profile', response)
-              return response
-            } else {
-              throw {
-                code: 999,
-                message: response
+      getUser(profile.email)
+        .then((doc) => {
+          const firebaseProfile = doc.data()
+          console.log('got firebase user...', firebaseProfile);
+          return fetch('https://api.dev.ostelco.org/profile', {
+            method: 'GET',
+            headers: requestHeaders
+          }).then((response) => response.json())
+            .then(response => {
+              try {
+                if (response.email) {
+                  console.log('-------------------');
+                  console.log('got profile', response);
+                  /*
+                  TODO: Data from our backend is the source of truth, if that changes, it should overwrite the data in firebase, but right now it seems like the data wont change from any other source than this web page
+                  const nameArray = (name || '').split(' ')
+
+                  return {
+                    firstname: nameArray.slice(0, nameArray.length - 1).join(' '),
+                    surname: nameArray.slice(nameArray.length - 1).join(' '),
+                    dateofbirth: '',
+                    address,
+                    email
+                  }
+                  */
+
+                  return firebaseProfile
+                } else {
+                  throw {
+                    code: 999,
+                    message: response
+                  }
+                }
+              } catch (err) {
+                throw {
+                  code: 999,
+                  message: response
+                }
               }
-            }
-          } catch (err) {
-            throw {
-              code: 999,
-              message: response
-            }
-          }
-        }).then((response)=> {
+            })
+        })
+        .then((response)=> {
           this.setState({ result: { success: true, data: {...profile, ...response }}})
-      }).catch((err) => {
-        this.setState({ result: { success: false, data: err }})
-      })
+        })
+        .catch((err) => {
+          this.setState({ result: { success: false, data: err }})
+        })
+
     }
   })),
   branch(({ result }) => !result, renderComponent(Callback))
