@@ -1,8 +1,15 @@
-# Start development server
 
+
+# Get Started
+
+## Install necessary dependencies
 ```bash
 npm install -g create-react-app
 yarn
+```
+
+## Start the development server
+```bash
 yarn start
 ```
 
