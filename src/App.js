@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
-import { Navbar, Button } from 'react-bootstrap';
+import { Navbar, Button, Nav } from 'react-bootstrap';
 import './App.css';
+import {StripeProvider} from "react-stripe-elements";
 
 class App extends Component {
   goTo(route) {
@@ -19,46 +20,54 @@ class App extends Component {
     const { isAuthenticated } = this.props.auth;
 
     return (
-      <div>
-        <Navbar fluid>
-          <Navbar.Header>
-            <Navbar.Brand>
-              <a href="#">Red Otter - Registration Form</a>
-            </Navbar.Brand>
-            <Button
-              bsStyle="primary"
-              className="btn-margin"
-              onClick={this.goTo.bind(this, 'home')}
-            >
-              Home
-            </Button>
-            {
-              !isAuthenticated() && (
-                  <Button
-                    id="qsLoginBtn"
-                    bsStyle="primary"
-                    className="btn-margin"
-                    onClick={this.login.bind(this)}
-                  >
-                    Log In
-                  </Button>
-                )
-            }
-            {
-              isAuthenticated() && (
-                  <Button
-                    id="qsLogoutBtn"
-                    bsStyle="primary"
-                    className="btn-margin"
-                    onClick={this.logout.bind(this)}
-                  >
-                    Log Out
-                  </Button>
-                )
-            }
-          </Navbar.Header>
-        </Navbar>
-      </div>
+        <div>
+          <Navbar fluid>
+
+              <Navbar.Brand>
+                <a href="#">Red Otter - Registration Form</a>
+              </Navbar.Brand>
+            <Nav>
+              <Button
+                bsStyle="primary"
+                className="btn-margin"
+                onClick={this.goTo.bind(this, 'home')}
+              >
+                Home
+              </Button>
+              {
+                !isAuthenticated() && (
+                    <Button
+                      id="qsLoginBtn"
+                      bsStyle="primary"
+                      className="btn-margin"
+                      onClick={this.login.bind(this)}
+                    >
+                      Log In
+                    </Button>
+                  )
+              }
+              {
+                isAuthenticated() && (
+                    <Button
+                      id="qsLogoutBtn"
+                      bsStyle="primary"
+                      className="btn-margin"
+                      onClick={this.logout.bind(this)}
+                    >
+                      Log Out
+                    </Button>
+                  )
+              }
+            </Nav>
+            <Navbar.Text className="justify-content-end">
+                <small><b>{process.env.NODE_ENV}</b> mode.</small>
+              </Navbar.Text>
+
+          </Navbar>
+          <div style={{ position: 'absolute', bottom: 15, right: 15 }}>
+            <pre>{ JSON.stringify(process.env, null, 2) }</pre>
+          </div>
+        </div>
     );
   }
 }

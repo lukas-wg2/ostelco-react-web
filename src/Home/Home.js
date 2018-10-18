@@ -6,7 +6,10 @@ import {FormGroup, HelpBlock, FormControl, ControlLabel, Button} from "react-boo
 import jwt_decode from 'jwt-decode';
 import Callback from "../Callback/Callback";
 import {getUser, setUser} from "../firebase";
-
+import {CardElement, Elements, StripeProvider} from "react-stripe-elements";
+import CheckoutForm from "../CheckoutForm";
+import CheckoutFormContainer from "../test";
+import {withAuthState, withRequestHeaders} from "../enhancers";
 
 const RegistrationFormSchema = yup.object().shape({
   firstname: yup.string().required(),
@@ -15,33 +18,6 @@ const RegistrationFormSchema = yup.object().shape({
   address: yup.string().required(),
   email: yup.string().email().required()
 });
-
-const withAuthState = compose(
-  withProps(() => {
-    const token = localStorage.getItem('access_token');
-    const decodedToken = jwt_decode(token);
-    const profile = {
-      email: decodedToken['https://ostelco/email']
-    }
-    return ({
-      token, decodedToken, profile
-    })
-  })
-);
-
-const withRequestHeaders = compose(
-  withAuthState,
-  withProps(props => {
-    const { token } = props;
-    return ({
-      requestHeaders: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    })
-  })
-)
 
 const RegistrationForm = (props) => {
   const { values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting } = props;
@@ -117,13 +93,14 @@ const RegistrationFormContainer = compose(
         console.log('profileExists', profileExists, values, requestHeaders)
 
         setUser(values.email, values).then(() => {
-          return fetch('https://api.dev.ostelco.org/profile', {
+          return fetch(`${process.env.REACT_APP_API_BASE}/profile`, {
             method: profileExists ? 'PUT' : 'POST',
             headers: requestHeaders,
             body: JSON.stringify({
               email: values.email,
               name: `${values.firstname} ${values.surname}`,
-              address: values.address
+              address: values.address,
+              country: 'SG'
             })
           }).then(response => {
             if (response.status == 200 || response.status == 201) {
@@ -146,7 +123,7 @@ const RegistrationFormContainer = compose(
           console.log('*************************');
           console.log(response)
           setSubmitting(false)
-          alert(response);
+          alert(JSON.stringify(response));
         })
 
       }
@@ -161,6 +138,7 @@ class Home extends Component {
     return (
       <div className="container">
         <RegistrationFormContainer {...profile} profileExists={profileExists} />
+        <CheckoutFormContainer />
       </div>
     );
   }
@@ -199,7 +177,7 @@ const withProfileFromServer = compose(
         .then((doc) => {
           const firebaseProfile = doc.data()
           console.log('got firebase user...', firebaseProfile);
-          return fetch('https://api.dev.ostelco.org/profile', {
+          return fetch(`${process.env.REACT_APP_API_BASE}/profile`, {
             method: 'GET',
             headers: requestHeaders
           }).then((response) => response.json())
