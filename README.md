@@ -2,13 +2,17 @@
 
 # Get Started
 
-## Install necessary dependencies
+1. Install development dependencies
 ```bash
 npm install -g create-react-app
+```
+
+2. Install website dependencies (node modules)
+```bash
 yarn
 ```
 
-## Start the development server
+3 Start the development server
 ```bash
 yarn start
 ```
